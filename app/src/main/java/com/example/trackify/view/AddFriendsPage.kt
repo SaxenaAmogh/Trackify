@@ -6,7 +6,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -182,7 +181,14 @@ fun AddFriendsPage(navController: NavController, transactionViewModel: Transacti
                                 )
                             },
                             value = amount,
-                            onValueChange = { amount = it },
+                            onValueChange = {
+                                val newValue = it.toIntOrNull()
+                                if (newValue != null && newValue <= (transactionViewModel.amount).toIntOrNull()!!) {
+                                    amount = it
+                                } else if (newValue == null && it.isEmpty()) {
+                                    amount = "" // allow empty input (clearing)
+                                }
+                            },
                             singleLine = true,
                             readOnly = split,
                             keyboardOptions = KeyboardOptions(
@@ -430,7 +436,7 @@ fun AddFriendsPage(navController: NavController, transactionViewModel: Transacti
                                                 .size(26.dp)
                                                 .weight(0.05f)
                                                 .clickable {
-                                                    navController.popBackStack()
+                                                    transactionViewModel.selectedFriends.removeAt(it)
                                                 },
                                             tint = Color.White
                                         )
@@ -603,35 +609,69 @@ fun AddFriendsPage(navController: NavController, transactionViewModel: Transacti
                                 )
                             }
                             Spacer(modifier = Modifier.height(0.02 * screenHeight))
-                            FloatingActionButton(
-                                onClick = {
-                                    if (friendCount == friends.toIntOrNull() || friends == "") {
-                                        navController.popBackStack()
-                                    }else{
-                                        Toast.makeText(
-                                            context,
-                                            "Please add all friends before proceeding",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                },
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth(),
-                                containerColor = Color(0xFFDE4251),
-                                elevation = FloatingActionButtonDefaults.elevation(
-                                    defaultElevation = 0.dp,
-                                    pressedElevation = 0.dp,
-                                    focusedElevation = 0.dp,
-                                    hoveredElevation = 0.dp
-                                )
-                            ) {
-                                Text(
-                                    text = "Done",
-                                    fontFamily = latoFontFamily,
-                                    color = Color.White,
-                                    fontSize = 19.sp,
-                                    fontWeight = FontWeight.W500,
-                                )
+                            ){
+                                FloatingActionButton(
+                                    onClick = {
+                                        transactionViewModel.clearSelectedFriends()
+                                        navController.popBackStack()
+                                    },
+                                    modifier = Modifier
+                                        .weight(0.3f)
+                                        .border(
+                                            width = 1.5.dp,
+                                            color = Color(0xFFC93043),
+                                            shape = RoundedCornerShape(16.dp)
+                                        ),
+                                    containerColor = Color.Transparent,
+                                    elevation = FloatingActionButtonDefaults.elevation(
+                                        defaultElevation = 0.dp,
+                                        pressedElevation = 0.dp,
+                                        focusedElevation = 0.dp,
+                                        hoveredElevation = 0.dp
+                                    )
+                                ) {
+                                    Text(
+                                        text = "Clear",
+                                        fontFamily = latoFontFamily,
+                                        color = Color.White,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.W500,
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                FloatingActionButton(
+                                    onClick = {
+                                        if (friendCount == friends.toIntOrNull() || friends == "") {
+                                            navController.popBackStack()
+                                        }else{
+                                            Toast.makeText(
+                                                context,
+                                                "Please add all friends before proceeding",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .weight(0.7f),
+                                    containerColor = Color(0xFFDE4251),
+                                    elevation = FloatingActionButtonDefaults.elevation(
+                                        defaultElevation = 0.dp,
+                                        pressedElevation = 0.dp,
+                                        focusedElevation = 0.dp,
+                                        hoveredElevation = 0.dp
+                                    )
+                                ) {
+                                    Text(
+                                        text = "Done",
+                                        fontFamily = latoFontFamily,
+                                        color = Color.White,
+                                        fontSize = 19.sp,
+                                        fontWeight = FontWeight.W500,
+                                    )
+                                }
                             }
 
                             if (showDialog) {

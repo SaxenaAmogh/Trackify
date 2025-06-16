@@ -1,6 +1,7 @@
 package com.example.trackify.view
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.graphics.Paint
 import android.os.Build
 import android.util.Log
@@ -71,6 +72,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +81,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -100,6 +103,13 @@ fun ReportsPage(navController: NavController) {
     val screenHeight = configuration.screenHeightDp.dp
     val focusManager = LocalFocusManager.current
 
+    val view = LocalView.current
+    val window = (view.context as? Activity)?.window
+    val windowInsetsController = window?.let { WindowCompat.getInsetsController(it, view) }
+    if (windowInsetsController != null) {
+        windowInsetsController.isAppearanceLightStatusBars = false
+    }
+
     var expanded by remember { mutableStateOf(false) }
     val months = listOf("This Month", "This Week", "Last Month", "This Year")
     var selectedOption by remember { mutableStateOf("This Month") }
@@ -108,7 +118,11 @@ fun ReportsPage(navController: NavController) {
     val months2 = listOf("This Month", "This Week", "Last Month", "This Year")
     var selectedOption2 by remember { mutableStateOf("This Month") }
 
-    var analytics by remember { mutableStateOf(false) }
+    var expanded3 by remember { mutableStateOf(false) }
+    val months3 = listOf("This Month", "This Week", "Last Month", "This Year")
+    var selectedOption3 by remember { mutableStateOf("This Month") }
+
+    var analytics by remember { mutableStateOf(true) }
 
     val utilityViewModel: UtilityViewModel = viewModel()
     utilityViewModel.fetchAllIncomes()
@@ -133,10 +147,12 @@ fun ReportsPage(navController: NavController) {
     val categoryStats = remember(allExpensesRaw, selectedOption2) {
         reportsViewModel.getCategoryCounts(allExpensesRaw, selectedOption2)
     }
-
     val categoryCounts = categoryStats.counts           // List<CategoryCount>
     val categoryAmounts = categoryStats.amounts         // Map<String, Double>
 
+    val payModeData = remember(allExpensesRaw, selectedOption3) {
+        reportsViewModel.getPayModeCounts(allExpensesRaw, selectedOption3)
+    }
 
     var seeLess by remember { mutableStateOf(true) }
     val allFriendsSpent = reportsViewModel.calculateTotalSpentPerFriend(allExpensesRaw)
@@ -243,9 +259,7 @@ fun ReportsPage(navController: NavController) {
     }
 
     @Composable
-    fun ExpenseRingChart(
-        data: List<ReportsViewModel.CategoryCount>
-    ) {
+    fun ExpenseRingChart(data: List<ReportsViewModel.CategoryCount>) {
         val total = data.sumOf { it.count.toDouble() }
 
         val categoryColorMap = mapOf(
@@ -294,7 +308,7 @@ fun ReportsPage(navController: NavController) {
                 )
                 Text(
                     text = " ₹${String.format("%.2f", expenseTotal2)}",
-                    color = Color(0xFFFFFFFF),
+                    color = Color(0xFFDE4251),
                     fontSize = 28.sp,
                     fontFamily = latoFontFamily,
                 )
@@ -302,8 +316,44 @@ fun ReportsPage(navController: NavController) {
         }
     }
 
+    @Composable
+    fun PaymentModeChart(data: List<ReportsViewModel.PayModeCount>) {
+        val total = data.sumOf { it.count.toDouble() }
+
+        val categoryColorMap = mapOf(
+            "UPI" to Color(0xFFDE4251),
+            "Cash" to Color(0xFF00BCD4),
+            "Card" to Color(0xFFFF9800),
+            "Net Banking" to Color(0xFF3F51B5),
+            "Other" to Color(0xFF607D8B)
+        )
 
 
+        Box(
+            modifier = Modifier
+                .size(300.dp)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                var startAngle = -90f
+                data.forEach { entry ->
+                    val sweep = (entry.count.toDouble() / total) * 360f
+                    val color = categoryColorMap[entry.paymentType] ?: Color.Gray
+
+                    drawArc(
+                        color = color,
+                        startAngle = startAngle,
+                        sweepAngle = sweep.toFloat(),
+                        useCenter = true // Makes it a filled slice (solid pie)
+                        // No stroke here
+                    )
+                    startAngle += sweep.toFloat()
+                }
+            }
+        }
+
+    }
 
     Scaffold(
         content = {
@@ -338,657 +388,910 @@ fun ReportsPage(navController: NavController) {
                             fontSize = 24.sp,
                             fontFamily = latoFontFamily,
                         )
-                        LazyColumn {
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            shape = RoundedCornerShape(16.dp),
-                                            color = Color(0xFF19191b)
-                                        ),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceEvenly
-                                ) {
-                                    Button(
-                                        onClick = {
-                                            analytics = false
-                                        },
-                                        modifier = Modifier
-                                            .padding(
-                                                vertical = 8.dp,
-                                                horizontal = 8.dp
-                                            )
-                                            .weight(1f)
-                                            .height(0.05 * screenHeight),
-                                        shape = RoundedCornerShape(16.dp),
-                                        colors = if (!analytics) {
-                                            ButtonDefaults.buttonColors(
-                                                containerColor = Color(0xFFDE4251)
-                                            )
-                                        } else {
-                                            ButtonDefaults.buttonColors(
-                                                containerColor = Color.Transparent
-                                            )
-                                        }
-                                    ) {
-                                        Text(
-                                            text = "Transactions",
-                                            color = if (!analytics) Color.Black else Color.White,
-                                            fontSize = 18.sp,
-                                            fontFamily = latoFontFamily,
-                                        )
-                                    }
-                                    Button(
-                                        onClick = {
-                                            analytics = true
-                                        },
-                                        modifier = Modifier
-                                            .padding(
-                                                vertical = 8.dp,
-                                                horizontal = 8.dp
-                                            )
-                                            .weight(1f)
-                                            .height(0.05 * screenHeight),
-                                        shape = RoundedCornerShape(16.dp),
-                                        colors = if (analytics) {
-                                            ButtonDefaults.buttonColors(
-                                                containerColor = Color(0xFFDE4251)
-                                            )
-                                        } else {
-                                            ButtonDefaults.buttonColors(
-                                                containerColor = Color.Transparent
-                                            )
-                                        }
-                                    ) {
-                                        Text(
-                                            text = "Analytics",
-                                            color = if (analytics) Color.Black else Color.White,
-                                            fontSize = 18.sp,
-                                            fontFamily = latoFontFamily,
-                                        )
-                                    }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = Color(0xFF19191b)
+                                ),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Button(
+                                onClick = {
+                                    analytics = true
+                                },
+                                modifier = Modifier
+                                    .padding(
+                                        vertical = 8.dp,
+                                        horizontal = 8.dp
+                                    )
+                                    .weight(1f)
+                                    .height(0.05 * screenHeight),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = if (analytics) {
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFDE4251)
+                                    )
+                                } else {
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = Color.Transparent
+                                    )
                                 }
+                            ) {
+                                Text(
+                                    text = "Analytics",
+                                    color = if (analytics) Color.Black else Color.White,
+                                    fontSize = 18.sp,
+                                    fontFamily = latoFontFamily,
+                                )
                             }
-                            item{
-                                Spacer(modifier = Modifier.height(0.02 * screenHeight))
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 5.dp)
-                                        .background(
-                                            color = Color(0x14ABABAB),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = Color(0x66ABABAB),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .heightIn(
-                                            min = 0.2 * screenHeight,
-                                        )
-                                ){
+                            Button(
+                                onClick = {
+                                    analytics = false
+                                },
+                                modifier = Modifier
+                                    .padding(
+                                        vertical = 8.dp,
+                                        horizontal = 8.dp
+                                    )
+                                    .weight(1f)
+                                    .height(0.05 * screenHeight),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = if (!analytics) {
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFDE4251)
+                                    )
+                                } else {
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = Color.Transparent
+                                    )
+                                }
+                            ) {
+                                Text(
+                                    text = "Transactions",
+                                    color = if (!analytics) Color.Black else Color.White,
+                                    fontSize = 18.sp,
+                                    fontFamily = latoFontFamily,
+                                )
+                            }
+                        }
+                        if (analytics){
+                            LazyColumn {
+                                // Analytics Section
+                                item {
+                                    Spacer(modifier = Modifier.height(0.02 * screenHeight))
                                     Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(16.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
+                                            .padding(horizontal = 5.dp)
+                                            .background(
+                                                color = Color(0x14ABABAB),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = Color(0x66ABABAB),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .heightIn(
+                                                min = 0.2 * screenHeight,
+                                            )
                                     ) {
-                                        Text(
-                                            text = "Transaction Summary",
-                                            color = Color.White,
-                                            fontSize = 22.sp,
-                                            fontFamily = latoFontFamily,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Spacer(modifier = Modifier.height(10.dp))
-                                        ExposedDropdownMenuBox(
-                                            expanded = expanded,
-                                            onExpandedChange = { expanded = it }
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .menuAnchor()
-                                                    .border(
-                                                        width = 0.5.dp,
-                                                        color = Color(0xFFFFFFFF),
-                                                        shape = RoundedCornerShape(50.dp)
-                                                    ),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ){
-                                                Text(
-                                                    text = selectedOption,
-                                                    color = Color.White,
-                                                    fontSize = 14.sp,
-                                                    fontFamily = latoFontFamily,
-                                                    modifier = Modifier
-                                                        .padding(
-                                                            start = 12.dp,
-                                                            top = 6.dp,
-                                                            bottom = 6.dp
-                                                        )
-                                                )
-
-                                                Icon(
-                                                    Icons.Default.ArrowDropDown,
-                                                    contentDescription = "Dropdown",
-                                                    tint = Color.White,
-                                                    modifier = Modifier
-                                                        .padding(end = 6.dp)
-                                                        .clickable {
-                                                            expanded = true
-                                                        }
-                                                        .align(Alignment.CenterVertically)
-                                                )
-                                            }
-
-                                            ExposedDropdownMenu(
-                                                expanded = expanded,
-                                                onDismissRequest = { expanded = false },
-                                                modifier = Modifier
-                                                    .background(Color(0xFFFFFFFF)),
-                                            ) {
-                                                months.forEach { item ->
-                                                    DropdownMenuItem(
-                                                        colors = MenuItemColors(
-                                                            textColor = Color.Black,
-                                                            leadingIconColor = Color.Transparent,
-                                                            trailingIconColor = Color.Transparent,
-                                                            disabledTextColor = Color.Transparent,
-                                                            disabledLeadingIconColor = Color.Transparent,
-                                                            disabledTrailingIconColor = Color.Transparent,
-                                                        ),
-                                                        modifier = Modifier
-                                                            .background(Color.White),
-                                                        text = {
-                                                            Text(
-                                                                item,
-                                                                fontFamily = latoFontFamily,
-                                                                modifier = Modifier
-                                                                    .fillMaxWidth(),
-                                                                textAlign = TextAlign.Center
-                                                            )
-                                                        },
-                                                        onClick = {
-                                                            selectedOption = item
-                                                            val (incomes, expenses) = reportsViewModel.getFilteredIncomeAndExpenseTotal(selectedOption, allExpensesRaw, allIncomes)
-                                                            incomeTotal = incomes
-                                                            expenseTotal = expenses
-                                                            expanded = false
-                                                        }
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                start = 0.1 * screenWidth,
-                                                end = 0.1 * screenWidth,
-                                                bottom = 16.dp
-                                            ),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                    ){
                                         Column(
                                             modifier = Modifier
-                                                .weight(0.4f),
-                                            verticalArrangement = Arrangement.Center
+                                                .fillMaxWidth()
+                                                .padding(
+                                                    top = 16.dp
+                                                ),
+                                            horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center
-                                            ){
-                                                VerticalDivider(
-                                                    modifier = Modifier
-                                                        .height(28.dp)
-                                                        .clip(
-                                                            RoundedCornerShape(50.dp)
-                                                        ),
-                                                    color = Color(0xFF00BCD4),
-                                                    thickness = 3.dp,
-                                                )
-                                                Spacer(modifier = Modifier.width(10.dp))
-                                                Text(
-                                                    text = "Income",
-                                                    color = Color.White,
-                                                    fontSize = 19.sp,
-                                                    fontFamily = latoFontFamily,
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.height(8.dp))
                                             Text(
-                                                modifier = Modifier
-                                                    .fillMaxWidth(),
-                                                text = if (incomeTotal == null) "Loading..." else " ₹${String.format("%.2f", incomeTotal)}", //
-                                                color = Color(0xFFFFFFFF),
-                                                fontSize = 28.sp,
-                                                fontFamily = latoFontFamily,
-                                                textAlign = TextAlign.Center
-                                            )
-                                        }
-                                        Column(
-                                            modifier = Modifier
-                                                .weight(0.4f),
-                                            verticalArrangement = Arrangement.Center
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center
-                                            ){
-                                                VerticalDivider(
-                                                    modifier = Modifier
-                                                        .height(28.dp)
-                                                        .clip(
-                                                            RoundedCornerShape(50.dp)
-                                                        ),
-                                                    color = Color(0xFFDE4251),
-                                                    thickness = 3.dp,
-                                                )
-                                                Spacer(modifier = Modifier.width(10.dp))
-                                                Text(
-                                                    text = "Expenses",
-                                                    color = Color.White,
-                                                    fontSize = 19.sp,
-                                                    fontFamily = latoFontFamily,
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Text(
-                                                modifier = Modifier
-                                                    .fillMaxWidth(),
-                                                text = if (expenseTotal == null) "Loading..." else " ₹${String.format("%.2f", expenseTotal)}", //
-                                                color = Color(0xFFFFFFFF),
-                                                fontSize = 28.sp,
-                                                fontFamily = latoFontFamily,
-                                                textAlign = TextAlign.Center
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            // Analytics Section
-                            item {
-                                Spacer(modifier = Modifier.height(0.02 * screenHeight))
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 5.dp)
-                                        .background(
-                                            color = Color(0x14ABABAB),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = Color(0x66ABABAB),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .heightIn(
-                                            min = 0.2 * screenHeight,
-                                        )
-                                ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                top = 16.dp
-                                            ),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = "This Week's Analytics",
-                                            color = Color.White,
-                                            fontSize = 22.sp,
-                                            fontFamily = latoFontFamily,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Spacer(modifier = Modifier.height(10.dp))
-                                        Row(){
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(16.dp)
-                                                        .background(Color(0xFF00BCD4), shape = RoundedCornerShape(18))
-                                                ){}
-                                                Spacer(modifier = Modifier.width(5.dp))
-                                                Text(
-                                                    text = "Income",
-                                                    color = Color(0xFFFFFFFF),
-                                                    fontSize = 16.sp,
-                                                    fontFamily = latoFontFamily,
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(16.dp))
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(16.dp)
-                                                        .background(Color(0xFFDE4251), shape = RoundedCornerShape(18))
-                                                ){}
-                                                Spacer(modifier = Modifier.width(5.dp))
-                                                Text(
-                                                    text = "Expense",
-                                                    color = Color(0xFFFFFFFF),
-                                                    fontSize = 16.sp,
-                                                    fontFamily = latoFontFamily,
-                                                )
-                                            }
-                                        }
-                                    }
-                                    WeeklyLineChart(weeklyData)
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                }
-                            }
-                            //transactions
-                            item {
-                                Spacer(modifier = Modifier.height(0.02 * screenHeight))
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 5.dp)
-                                        .background(
-                                            color = Color(0x14ABABAB),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = Color(0x66ABABAB),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .heightIn(
-                                            min = 0.2 * screenHeight,
-                                        ),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = "Most Spent With",
-                                            color = Color.White,
-                                            fontSize = 22.sp,
-                                            fontFamily = latoFontFamily,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ){
-                                            Text(
-                                                text = "Total spent this month:  ",
+                                                text = "This Week's Analytics",
                                                 color = Color.White,
-                                                fontSize = 16.sp,
-                                                fontFamily = latoFontFamily,
-                                            )
-                                            Text(
-                                                text = if (totalWithFriends == null || totalWithFriends == 0.0) "Loading..." else "₹${String.format("%.2f", totalWithFriends)}",
-                                                color = Color(0xFFDE4251),
-                                                fontSize = 20.sp,
+                                                fontSize = 22.sp,
                                                 fontFamily = latoFontFamily,
                                                 fontWeight = FontWeight.Bold
                                             )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                start = 10.dp,
-                                                end = 10.dp,
-                                            ),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "Name",
-                                            color = Color(0xFFDE4251),
-                                            modifier = Modifier
-                                                .weight(0.5f),
-                                            fontFamily = latoFontFamily,
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            textAlign = TextAlign.Center
-                                        )
-                                        Text(
-                                            text = "Spent",
-                                            color = Color(0xFFDE4251),
-                                            modifier = Modifier
-                                                .weight(0.5f),
-                                            fontFamily = latoFontFamily,
-                                            fontSize = 20.sp,
-                                            textAlign = TextAlign.Center,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    if (seeLess){
-                                        val top4Friends = allFriendsSpent.entries.take(3)
-                                        top4Friends.forEach{(name, amount) ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(
-                                                        start = 10.dp,
-                                                        end = 10.dp,
-                                                    ),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = name,
-                                                    color = Color(0xFFFFFFFF),
-                                                    modifier = Modifier
-                                                        .weight(0.5f),
-                                                    fontFamily = latoFontFamily,
-                                                    fontSize = 18.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    textAlign = TextAlign.Center
-                                                )
-                                                Text(
-                                                    text = "₹${String.format("%.2f", amount)}",
-                                                    color = Color(0xFFFFFFFF),
-                                                    modifier = Modifier
-                                                        .weight(0.5f),
-                                                    fontFamily = latoFontFamily,
-                                                    fontSize = 18.sp,
-                                                    textAlign = TextAlign.Center,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                        }
-                                    }else{
-                                        allFriendsSpent.forEach{(name, amount) ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(
-                                                        start = 10.dp,
-                                                        end = 10.dp,
-                                                    ),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = name,
-                                                    color = Color(0xFFFFFFFF),
-                                                    modifier = Modifier
-                                                        .weight(0.5f),
-                                                    fontFamily = latoFontFamily,
-                                                    fontSize = 18.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    textAlign = TextAlign.Center
-                                                )
-                                                Text(
-                                                    text = "₹${String.format("%.2f", amount)}",
-                                                    color = Color(0xFFFFFFFF),
-                                                    modifier = Modifier
-                                                        .weight(0.5f),
-                                                    fontFamily = latoFontFamily,
-                                                    fontSize = 18.sp,
-                                                    textAlign = TextAlign.Center,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                        }
-                                    }
-                                    Text(
-                                        text = if (seeLess) "See More" else "See Less",
-                                        color = Color(0xFFDE4251),
-                                        fontSize = 16.sp,
-                                        fontFamily = latoFontFamily,
-                                        modifier = Modifier
-                                            .padding(
-                                                vertical = 8.dp
-                                            )
-                                            .clickable {
-                                                seeLess = !seeLess
-                                            }
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                }
-                            }
-                            item {
-                                Spacer(modifier = Modifier.height(0.02 * screenHeight))
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 5.dp)
-                                        .background(
-                                            color = Color(0x14ABABAB),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = Color(0x66ABABAB),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .heightIn(
-                                            min = 0.2 * screenHeight,
-                                        ),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = "Most Spent On $selectedOption2",
-                                            color = Color.White,
-                                            fontSize = 22.sp,
-                                            fontFamily = latoFontFamily,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Spacer(modifier = Modifier.height(10.dp))
-                                        ExposedDropdownMenuBox(
-                                            expanded = expanded2,
-                                            onExpandedChange = { expanded2 = it }
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .menuAnchor()
-                                                    .border(
-                                                        width = 0.5.dp,
-                                                        color = Color(0xFFFFFFFF),
-                                                        shape = RoundedCornerShape(50.dp)
-                                                    ),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ){
-                                                Text(
-                                                    text = selectedOption2,
-                                                    color = Color.White,
-                                                    fontSize = 14.sp,
-                                                    fontFamily = latoFontFamily,
-                                                    modifier = Modifier
-                                                        .padding(
-                                                            start = 12.dp,
-                                                            top = 6.dp,
-                                                            bottom = 6.dp
-                                                        )
-                                                )
-
-                                                Icon(
-                                                    Icons.Default.ArrowDropDown,
-                                                    contentDescription = "Dropdown",
-                                                    tint = Color.White,
-                                                    modifier = Modifier
-                                                        .padding(end = 6.dp)
-                                                        .clickable {
-                                                            expanded2 = true
-                                                        }
-                                                        .align(Alignment.CenterVertically)
-                                                )
-                                            }
-
-                                            ExposedDropdownMenu(
-                                                expanded = expanded2,
-                                                onDismissRequest = { expanded2 = false },
-                                                modifier = Modifier
-                                                    .background(Color(0xFFFFFFFF)),
-                                            ) {
-                                                months2.forEach { item ->
-                                                    DropdownMenuItem(
-                                                        colors = MenuItemColors(
-                                                            textColor = Color.Black,
-                                                            leadingIconColor = Color.Transparent,
-                                                            trailingIconColor = Color.Transparent,
-                                                            disabledTextColor = Color.Transparent,
-                                                            disabledLeadingIconColor = Color.Transparent,
-                                                            disabledTrailingIconColor = Color.Transparent,
-                                                        ),
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Row(){
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                ) {
+                                                    Box(
                                                         modifier = Modifier
-                                                            .background(Color.White),
-                                                        text = {
-                                                            Text(
-                                                                item,
-                                                                fontFamily = latoFontFamily,
-                                                                modifier = Modifier
-                                                                    .fillMaxWidth(),
-                                                                textAlign = TextAlign.Center
-                                                            )
-                                                        },
-                                                        onClick = {
-                                                            selectedOption2 = item
-                                                            val (incomes2, expenses2) = reportsViewModel.getFilteredIncomeAndExpenseTotal(selectedOption2, allExpensesRaw, allIncomes)
-                                                            expenseTotal2 = expenses2
-                                                            expanded2 = false
-                                                        }
+                                                            .size(16.dp)
+                                                            .background(Color(0xFF00BCD4), shape = RoundedCornerShape(18))
+                                                    ){}
+                                                    Spacer(modifier = Modifier.width(5.dp))
+                                                    Text(
+                                                        text = "Income",
+                                                        color = Color(0xFFFFFFFF),
+                                                        fontSize = 16.sp,
+                                                        fontFamily = latoFontFamily,
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(16.dp))
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(16.dp)
+                                                            .background(Color(0xFFDE4251), shape = RoundedCornerShape(18))
+                                                    ){}
+                                                    Spacer(modifier = Modifier.width(5.dp))
+                                                    Text(
+                                                        text = "Expense",
+                                                        color = Color(0xFFFFFFFF),
+                                                        fontSize = 16.sp,
+                                                        fontFamily = latoFontFamily,
                                                     )
                                                 }
                                             }
                                         }
+                                        WeeklyLineChart(weeklyData)
+                                        Spacer(modifier = Modifier.height(16.dp))
                                     }
-                                    Spacer(modifier = Modifier.height(2.dp))
-
-                                    ExpenseRingChart(categoryCounts)
-
-                                    Spacer(modifier = Modifier.height(5.dp))
-
-
-
-                                    Spacer(modifier = Modifier.height(16.dp))
                                 }
-                                Spacer(modifier = Modifier.height(0.16 * screenHeight))
+                                item {
+                                    Spacer(modifier = Modifier.height(0.02 * screenHeight))
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 5.dp)
+                                            .background(
+                                                color = Color(0x14ABABAB),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = Color(0x66ABABAB),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .heightIn(
+                                                min = 0.2 * screenHeight,
+                                            ),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = "Most Spent On $selectedOption2",
+                                                color = Color.White,
+                                                fontSize = 22.sp,
+                                                fontFamily = latoFontFamily,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            ExposedDropdownMenuBox(
+                                                expanded = expanded2,
+                                                onExpandedChange = { expanded2 = it }
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .menuAnchor()
+                                                        .border(
+                                                            width = 0.5.dp,
+                                                            color = Color(0xFFFFFFFF),
+                                                            shape = RoundedCornerShape(50.dp)
+                                                        ),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ){
+                                                    Text(
+                                                        text = selectedOption2,
+                                                        color = Color.White,
+                                                        fontSize = 14.sp,
+                                                        fontFamily = latoFontFamily,
+                                                        modifier = Modifier
+                                                            .padding(
+                                                                start = 12.dp,
+                                                                top = 6.dp,
+                                                                bottom = 6.dp
+                                                            )
+                                                    )
+
+                                                    Icon(
+                                                        Icons.Default.ArrowDropDown,
+                                                        contentDescription = "Dropdown",
+                                                        tint = Color.White,
+                                                        modifier = Modifier
+                                                            .padding(end = 6.dp)
+                                                            .clickable {
+                                                                expanded2 = true
+                                                            }
+                                                            .align(Alignment.CenterVertically)
+                                                    )
+                                                }
+
+                                                ExposedDropdownMenu(
+                                                    expanded = expanded2,
+                                                    onDismissRequest = { expanded2 = false },
+                                                    modifier = Modifier
+                                                        .background(Color(0xFFFFFFFF)),
+                                                ) {
+                                                    months2.forEach { item ->
+                                                        DropdownMenuItem(
+                                                            colors = MenuItemColors(
+                                                                textColor = Color.Black,
+                                                                leadingIconColor = Color.Transparent,
+                                                                trailingIconColor = Color.Transparent,
+                                                                disabledTextColor = Color.Transparent,
+                                                                disabledLeadingIconColor = Color.Transparent,
+                                                                disabledTrailingIconColor = Color.Transparent,
+                                                            ),
+                                                            modifier = Modifier
+                                                                .background(Color.White),
+                                                            text = {
+                                                                Text(
+                                                                    item,
+                                                                    fontFamily = latoFontFamily,
+                                                                    modifier = Modifier
+                                                                        .fillMaxWidth(),
+                                                                    textAlign = TextAlign.Center
+                                                                )
+                                                            },
+                                                            onClick = {
+                                                                selectedOption2 = item
+                                                                val (incomes2, expenses2) = reportsViewModel.getFilteredIncomeAndExpenseTotal(selectedOption2, allExpensesRaw, allIncomes)
+                                                                expenseTotal2 = expenses2
+                                                                expanded2 = false
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        if (categoryAmounts.isEmpty()){
+                                            Text(
+                                                text = "No data available for $selectedOption3",
+                                                color = Color.White,
+                                                fontSize = 16.sp,
+                                                fontFamily = latoFontFamily,
+                                                modifier = Modifier.padding(16.dp)
+                                            )
+                                        }else {
+                                            ExpenseRingChart(categoryCounts)
+
+                                            Spacer(modifier = Modifier.height(5.dp))
+
+                                            val categoryColorMap = mapOf(
+                                                "Food" to Color(0xFFDE4251),
+                                                "Shopping" to Color(0xFFFF9800),
+                                                "Entertainment" to Color(0xFF3F51B5),
+                                                "Subscriptions" to Color(0xFF009688),
+                                                "Travel" to Color(0xFF9C27B0),
+                                                "Other" to Color(0xFF607D8B)
+                                            )
+
+                                            categoryAmounts.forEach { (category, amount) ->
+                                                val color = categoryColorMap[category] ?: Color.Gray
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(
+                                                            horizontal = 24.dp
+                                                        ),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(24.dp)
+                                                                .background(
+                                                                    color,
+                                                                    shape = RoundedCornerShape(18)
+                                                                )
+                                                        ) {}
+                                                        Spacer(modifier = Modifier.width(5.dp))
+                                                        Text(
+                                                            text = category,
+                                                            color = Color(0xFFFFFFFF),
+                                                            fontSize = 18.sp,
+                                                            fontFamily = latoFontFamily,
+                                                        )
+                                                    }
+                                                    Text(
+                                                        text = "₹${String.format("%.2f", amount)}",
+                                                        color = Color(0xFFFFFFFF),
+                                                        fontSize = 18.sp,
+                                                        fontFamily = latoFontFamily,
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                    }
+                                }
+                                item {
+                                    Spacer(modifier = Modifier.height(0.02 * screenHeight))
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 5.dp)
+                                            .background(
+                                                color = Color(0x14ABABAB),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = Color(0x66ABABAB),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .heightIn(
+                                                min = 0.2 * screenHeight,
+                                            ),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = "Most Used Pay Mode",
+                                                color = Color.White,
+                                                fontSize = 22.sp,
+                                                fontFamily = latoFontFamily,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            ExposedDropdownMenuBox(
+                                                expanded = expanded3,
+                                                onExpandedChange = { expanded3 = it }
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .menuAnchor()
+                                                        .border(
+                                                            width = 0.5.dp,
+                                                            color = Color(0xFFFFFFFF),
+                                                            shape = RoundedCornerShape(50.dp)
+                                                        ),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ){
+                                                    Text(
+                                                        text = selectedOption3,
+                                                        color = Color.White,
+                                                        fontSize = 14.sp,
+                                                        fontFamily = latoFontFamily,
+                                                        modifier = Modifier
+                                                            .padding(
+                                                                start = 12.dp,
+                                                                top = 6.dp,
+                                                                bottom = 6.dp
+                                                            )
+                                                    )
+
+                                                    Icon(
+                                                        Icons.Default.ArrowDropDown,
+                                                        contentDescription = "Dropdown",
+                                                        tint = Color.White,
+                                                        modifier = Modifier
+                                                            .padding(end = 6.dp)
+                                                            .clickable {
+                                                                expanded3 = true
+                                                            }
+                                                            .align(Alignment.CenterVertically)
+                                                    )
+                                                }
+
+                                                ExposedDropdownMenu(
+                                                    expanded = expanded3,
+                                                    onDismissRequest = { expanded3 = false },
+                                                    modifier = Modifier
+                                                        .background(Color(0xFFFFFFFF)),
+                                                ) {
+                                                    months3.forEach { item ->
+                                                        DropdownMenuItem(
+                                                            colors = MenuItemColors(
+                                                                textColor = Color.Black,
+                                                                leadingIconColor = Color.Transparent,
+                                                                trailingIconColor = Color.Transparent,
+                                                                disabledTextColor = Color.Transparent,
+                                                                disabledLeadingIconColor = Color.Transparent,
+                                                                disabledTrailingIconColor = Color.Transparent,
+                                                            ),
+                                                            modifier = Modifier
+                                                                .background(Color.White),
+                                                            text = {
+                                                                Text(
+                                                                    item,
+                                                                    fontFamily = latoFontFamily,
+                                                                    modifier = Modifier
+                                                                        .fillMaxWidth(),
+                                                                    textAlign = TextAlign.Center
+                                                                )
+                                                            },
+                                                            onClick = {
+                                                                selectedOption3 = item
+                                                                expanded3 = false
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        if (payModeData.isEmpty()){
+                                            Text(
+                                                text = "No data available for $selectedOption3",
+                                                color = Color.White,
+                                                fontSize = 16.sp,
+                                                fontFamily = latoFontFamily,
+                                                modifier = Modifier.padding(16.dp)
+                                            )
+                                        } else {
+                                            PaymentModeChart(payModeData)
+
+                                            Spacer(modifier = Modifier.height(5.dp))
+
+                                            val categoryColorMaps = mapOf(
+                                                "UPI" to Color(0xFFDE4251),
+                                                "Cash" to Color(0xFF00BCD4),
+                                                "Card" to Color(0xFFFF9800),
+                                                "Net Banking" to Color(0xFF3F51B5),
+                                                "Other" to Color(0xFF607D8B)
+                                            )
+
+                                            payModeData.forEach{ (payMode, count) ->
+                                                val color = categoryColorMaps[payMode] ?: Color.Gray
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(
+                                                            horizontal = 50.dp
+                                                        ),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ){
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(24.dp)
+                                                                .background(
+                                                                    color,
+                                                                    shape = RoundedCornerShape(18)
+                                                                )
+                                                        ){}
+                                                        Spacer(modifier = Modifier.width(5.dp))
+                                                        Text(
+                                                            text = payMode,
+                                                            color = Color(0xFFFFFFFF),
+                                                            fontSize = 18.sp,
+                                                            fontFamily = latoFontFamily,
+                                                        )
+                                                    }
+                                                    Text(
+                                                        text = "$count times",
+                                                        color = Color(0xFFFFFFFF),
+                                                        fontSize = 18.sp,
+                                                        fontFamily = latoFontFamily,
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                    }
+                                    Spacer(modifier = Modifier.height(0.16 * screenHeight))
+                                }
+                            }
+                        }else {
+                            LazyColumn {
+                                //transactions section
+                                item {
+                                    Spacer(modifier = Modifier.height(0.02 * screenHeight))
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 5.dp)
+                                            .background(
+                                                color = Color(0x14ABABAB),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = Color(0x66ABABAB),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .heightIn(
+                                                min = 0.2 * screenHeight,
+                                            )
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = "Transaction Summary",
+                                                color = Color.White,
+                                                fontSize = 22.sp,
+                                                fontFamily = latoFontFamily,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            ExposedDropdownMenuBox(
+                                                expanded = expanded,
+                                                onExpandedChange = { expanded = it }
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .menuAnchor()
+                                                        .border(
+                                                            width = 0.5.dp,
+                                                            color = Color(0xFFFFFFFF),
+                                                            shape = RoundedCornerShape(50.dp)
+                                                        ),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = selectedOption,
+                                                        color = Color.White,
+                                                        fontSize = 14.sp,
+                                                        fontFamily = latoFontFamily,
+                                                        modifier = Modifier
+                                                            .padding(
+                                                                start = 12.dp,
+                                                                top = 6.dp,
+                                                                bottom = 6.dp
+                                                            )
+                                                    )
+
+                                                    Icon(
+                                                        Icons.Default.ArrowDropDown,
+                                                        contentDescription = "Dropdown",
+                                                        tint = Color.White,
+                                                        modifier = Modifier
+                                                            .padding(end = 6.dp)
+                                                            .clickable {
+                                                                expanded = true
+                                                            }
+                                                            .align(Alignment.CenterVertically)
+                                                    )
+                                                }
+
+                                                ExposedDropdownMenu(
+                                                    expanded = expanded,
+                                                    onDismissRequest = { expanded = false },
+                                                    modifier = Modifier
+                                                        .background(Color(0xFFFFFFFF)),
+                                                ) {
+                                                    months.forEach { item ->
+                                                        DropdownMenuItem(
+                                                            colors = MenuItemColors(
+                                                                textColor = Color.Black,
+                                                                leadingIconColor = Color.Transparent,
+                                                                trailingIconColor = Color.Transparent,
+                                                                disabledTextColor = Color.Transparent,
+                                                                disabledLeadingIconColor = Color.Transparent,
+                                                                disabledTrailingIconColor = Color.Transparent,
+                                                            ),
+                                                            modifier = Modifier
+                                                                .background(Color.White),
+                                                            text = {
+                                                                Text(
+                                                                    item,
+                                                                    fontFamily = latoFontFamily,
+                                                                    modifier = Modifier
+                                                                        .fillMaxWidth(),
+                                                                    textAlign = TextAlign.Center
+                                                                )
+                                                            },
+                                                            onClick = {
+                                                                selectedOption = item
+                                                                val (incomes, expenses) = reportsViewModel.getFilteredIncomeAndExpenseTotal(
+                                                                    selectedOption,
+                                                                    allExpensesRaw,
+                                                                    allIncomes
+                                                                )
+                                                                incomeTotal = incomes
+                                                                expenseTotal = expenses
+                                                                expanded = false
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(
+                                                    start = 0.1 * screenWidth,
+                                                    end = 0.1 * screenWidth,
+                                                    bottom = 16.dp
+                                                ),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .weight(0.4f),
+                                                verticalArrangement = Arrangement.Center
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.Center
+                                                ) {
+                                                    VerticalDivider(
+                                                        modifier = Modifier
+                                                            .height(28.dp)
+                                                            .clip(
+                                                                RoundedCornerShape(50.dp)
+                                                            ),
+                                                        color = Color(0xFF00BCD4),
+                                                        thickness = 3.dp,
+                                                    )
+                                                    Spacer(modifier = Modifier.width(10.dp))
+                                                    Text(
+                                                        text = "Income",
+                                                        color = Color.White,
+                                                        fontSize = 19.sp,
+                                                        fontFamily = latoFontFamily,
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                Text(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(),
+                                                    text = if (incomeTotal == null) "Loading..." else " ₹${
+                                                        String.format(
+                                                            "%.2f",
+                                                            incomeTotal
+                                                        )
+                                                    }", //
+                                                    color = Color(0xFFFFFFFF),
+                                                    fontSize = 28.sp,
+                                                    fontFamily = latoFontFamily,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                            Column(
+                                                modifier = Modifier
+                                                    .weight(0.4f),
+                                                verticalArrangement = Arrangement.Center
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.Center
+                                                ) {
+                                                    VerticalDivider(
+                                                        modifier = Modifier
+                                                            .height(28.dp)
+                                                            .clip(
+                                                                RoundedCornerShape(50.dp)
+                                                            ),
+                                                        color = Color(0xFFDE4251),
+                                                        thickness = 3.dp,
+                                                    )
+                                                    Spacer(modifier = Modifier.width(10.dp))
+                                                    Text(
+                                                        text = "Expenses",
+                                                        color = Color.White,
+                                                        fontSize = 19.sp,
+                                                        fontFamily = latoFontFamily,
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                Text(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(),
+                                                    text = if (expenseTotal == null) "Loading..." else " ₹${
+                                                        String.format(
+                                                            "%.2f",
+                                                            expenseTotal
+                                                        )
+                                                    }", //
+                                                    color = Color(0xFFFFFFFF),
+                                                    fontSize = 28.sp,
+                                                    fontFamily = latoFontFamily,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                item {
+                                    Spacer(modifier = Modifier.height(0.02 * screenHeight))
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 5.dp)
+                                            .background(
+                                                color = Color(0x14ABABAB),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = Color(0x66ABABAB),
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .heightIn(
+                                                min = 0.2 * screenHeight,
+                                            ),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = "Most Spent With",
+                                                color = Color.White,
+                                                fontSize = 22.sp,
+                                                fontFamily = latoFontFamily,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "Total spent this month:  ",
+                                                    color = Color.White,
+                                                    fontSize = 16.sp,
+                                                    fontFamily = latoFontFamily,
+                                                )
+                                                Text(
+                                                    text = if (totalWithFriends == null || totalWithFriends == 0.0) "Loading..." else "₹${String.format("%.2f",totalWithFriends)
+                                                    }",
+                                                    color = Color(0xFFDE4251),
+                                                    fontSize = 20.sp,
+                                                    fontFamily = latoFontFamily,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(
+                                                    start = 10.dp,
+                                                    end = 10.dp,
+                                                ),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "Name",
+                                                color = Color(0xFFDE4251),
+                                                modifier = Modifier
+                                                    .weight(0.5f),
+                                                fontFamily = latoFontFamily,
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            )
+                                            Text(
+                                                text = "Spent",
+                                                color = Color(0xFFDE4251),
+                                                modifier = Modifier
+                                                    .weight(0.5f),
+                                                fontFamily = latoFontFamily,
+                                                fontSize = 20.sp,
+                                                textAlign = TextAlign.Center,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        if (seeLess) {
+                                            val top4Friends = allFriendsSpent.entries.take(3)
+                                            top4Friends.forEach { (name, amount) ->
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(
+                                                            start = 10.dp,
+                                                            end = 10.dp,
+                                                        ),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = name,
+                                                        color = Color(0xFFFFFFFF),
+                                                        modifier = Modifier
+                                                            .weight(0.5f),
+                                                        fontFamily = latoFontFamily,
+                                                        fontSize = 18.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        textAlign = TextAlign.Center
+                                                    )
+                                                    Text(
+                                                        text = "₹${String.format("%.2f", amount)}",
+                                                        color = Color(0xFFFFFFFF),
+                                                        modifier = Modifier
+                                                            .weight(0.5f),
+                                                        fontFamily = latoFontFamily,
+                                                        fontSize = 18.sp,
+                                                        textAlign = TextAlign.Center,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                            }
+                                        } else {
+                                            allFriendsSpent.forEach { (name, amount) ->
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(
+                                                            start = 10.dp,
+                                                            end = 10.dp,
+                                                        ),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = name,
+                                                        color = Color(0xFFFFFFFF),
+                                                        modifier = Modifier
+                                                            .weight(0.5f),
+                                                        fontFamily = latoFontFamily,
+                                                        fontSize = 18.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        textAlign = TextAlign.Center
+                                                    )
+                                                    Text(
+                                                        text = "₹${String.format("%.2f", amount)}",
+                                                        color = Color(0xFFFFFFFF),
+                                                        modifier = Modifier
+                                                            .weight(0.5f),
+                                                        fontFamily = latoFontFamily,
+                                                        fontSize = 18.sp,
+                                                        textAlign = TextAlign.Center,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                            }
+                                        }
+                                        Text(
+                                            text = if (seeLess) "See More" else "See Less",
+                                            color = Color(0xFFDE4251),
+                                            fontSize = 16.sp,
+                                            fontFamily = latoFontFamily,
+                                            modifier = Modifier
+                                                .padding(
+                                                    vertical = 8.dp
+                                                )
+                                                .clickable {
+                                                    seeLess = !seeLess
+                                                }
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                    }
+                                }
                             }
                         }
                     }
 
 
+                    // Bottom Navigation Bar
                     Row(
                         modifier = Modifier
                             .padding(
@@ -1037,7 +1340,7 @@ fun ReportsPage(navController: NavController) {
                             IconButton(
                                 onClick = {
                                     navController.navigate("viewTransactions") {
-                                        popUpTo("home") { inclusive = true }
+                                        popUpTo("reports") { inclusive = true }
                                     }
                                 },
                                 modifier = Modifier

@@ -20,14 +20,14 @@ fun AppNavigation(navController: NavHostController) {
 
     LaunchedEffect(Unit) {
         if (isUserLoggedIn) {
-            navController.navigate("reports") {
+            navController.navigate("home") {
                 popUpTo(0) { inclusive = true }
             }
         }
     }
     NavHost(
         navController = navController,
-        startDestination = if (isUserLoggedIn) "reports" else "start" // Start with the TransactionPage,
+        startDestination = if (isUserLoggedIn) "home" else "start" // Start with the TransactionPage,
     ) {
         composable("home") {
             HomePage(navController)

@@ -92,9 +92,6 @@ fun HomePage(navController: NavController) {
     val userName by authViewModel.userName
     authViewModel.fetchUserName()
 
-    val view = LocalView.current
-    val window = (view.context as? Activity)?.window
-    val windowInsetsController = window?.let { WindowCompat.getInsetsController(it, view) }
 
     utilityViewModel.fetchAllRawExpenses()
     utilityViewModel.fetchAllIncomes()
@@ -104,6 +101,9 @@ fun HomePage(navController: NavController) {
     val totalThisMonthIncome = utilityViewModel.getCurrentMonthIncomes(allIncome, formatter)
     val totalWithFriends = utilityViewModel.getCurrentMonthExpensesFriends(allExpensesRaw, formatter)
 
+    val view = LocalView.current
+    val window = (view.context as? Activity)?.window
+    val windowInsetsController = window?.let { WindowCompat.getInsetsController(it, view) }
     if (windowInsetsController != null) {
         windowInsetsController.isAppearanceLightStatusBars = false
     }
@@ -366,7 +366,7 @@ fun HomePage(navController: NavController) {
                                                 horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
                                                 Text(
-                                                    text = "- ₹${expense.MyContribution}",
+                                                    text = "₹${String.format("%.2f", expense.MyContribution)}",
                                                     color = Color.White,
                                                     fontFamily = latoFontFamily,
                                                     fontSize = 14.sp,

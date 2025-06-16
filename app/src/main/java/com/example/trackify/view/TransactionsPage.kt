@@ -1,6 +1,7 @@
 package com.example.trackify.view
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.os.Build
 import androidx.annotation.RequiresApi
 import java.time.LocalDate
@@ -67,6 +68,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -76,6 +78,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -96,6 +99,13 @@ fun TransactionsPage(navController: NavController) {
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
     val focusManager = LocalFocusManager.current
+
+    val view = LocalView.current
+    val window = (view.context as? Activity)?.window
+    val windowInsetsController = window?.let { WindowCompat.getInsetsController(it, view) }
+    if (windowInsetsController != null) {
+        windowInsetsController.isAppearanceLightStatusBars = false
+    }
 
     val utilityViewModel: UtilityViewModel = viewModel()
     val allExpensesRaw by utilityViewModel.allExpensesRaw.collectAsState()
@@ -2137,7 +2147,9 @@ fun TransactionsPage(navController: NavController) {
                                 Spacer(modifier = Modifier.size(12.dp))
                                 IconButton(
                                     onClick = {
-                                        navController.navigate("reports")
+                                        navController.navigate("reports"){
+                                            popUpTo("viewTransactions") { inclusive = true }
+                                        }
                                     },
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(50))

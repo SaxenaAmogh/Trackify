@@ -3,7 +3,6 @@ package com.example.trackify.viewmodel
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import com.example.trackify.model.Expense
 import com.example.trackify.model.IncomeData
@@ -24,6 +23,11 @@ class ReportsViewModel: ViewModel() {
 
     data class CategoryCount(
         val category: String,
+        val count: Int
+    )
+
+    data class PayModeCount(
+        val paymentType: String,
         val count: Int
     )
 
@@ -177,7 +181,7 @@ class ReportsViewModel: ViewModel() {
         for (category in categoryLabels) {
             val totalAmount = filtered
                 .filter { it.ExpenseType.equals(category, ignoreCase = true) }
-                .sumOf { it.Amount }
+                .sumOf { it.MyContribution }
 
             if (totalAmount > 0.0) {
                 categoryAmountMap[category] = totalAmount
@@ -192,11 +196,44 @@ class ReportsViewModel: ViewModel() {
         return CategoryStats(counts = result, amounts = categoryAmountMap)
     }
 
+    fun getPayModeCounts(expenses: List<Expense>, filter: String): List<PayModeCount> {
+        val calendar = Calendar.getInstance()
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
+        fun isInFilter(dateString: String?): Boolean {
+            if (dateString.isNullOrBlank()) return false
+            val date = dateFormat.parse(dateString) ?: return false
+            val expenseCal = Calendar.getInstance().apply { time = date }
 
-    fun resetCategoryCounts() {
-        val categories = listOf("Food", "Shopping", "Entertainment", "Subscriptions", "Travel", "Other")
-        categories.map { category -> CategoryCount(category, 0) }
+            return when (filter) {
+                "This Week" -> calendar.get(Calendar.WEEK_OF_YEAR) == expenseCal.get(Calendar.WEEK_OF_YEAR) &&
+                        calendar.get(Calendar.YEAR) == expenseCal.get(Calendar.YEAR)
+                "This Month" -> calendar.get(Calendar.MONTH) == expenseCal.get(Calendar.MONTH) &&
+                        calendar.get(Calendar.YEAR) == expenseCal.get(Calendar.YEAR)
+                "Last Month" -> {
+                    val lastMonth = calendar.clone() as Calendar
+                    lastMonth.add(Calendar.MONTH, -1)
+                    lastMonth.get(Calendar.MONTH) == expenseCal.get(Calendar.MONTH) &&
+                            lastMonth.get(Calendar.YEAR) == expenseCal.get(Calendar.YEAR)
+                }
+                "This Year" -> calendar.get(Calendar.YEAR) == expenseCal.get(Calendar.YEAR)
+                else -> true
+            }
+        }
+
+        val filtered = expenses.filter { isInFilter(it.Date) }
+
+        val grouped = filtered.groupingBy { it.PaymentType.trim() }.eachCount()
+        Log.e("ReportsViewModel", "Grouped Pay Modes: $grouped")
+
+        val categoryLabels = listOf("UPI", "Cash", "Card", "Net Banking", "Other")
+
+        val result = categoryLabels.map { label ->
+            val count = grouped[label] ?: 0
+            PayModeCount(label, count)
+        }.filter { it.count > 0 }
+
+        return result
     }
 
 }
