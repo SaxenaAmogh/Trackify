@@ -1,6 +1,8 @@
 package com.example.trackify.viewmodel
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import com.example.trackify.model.Expense
 import com.example.trackify.model.FriendEntry
@@ -10,6 +12,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class UtilityViewModel: ViewModel()  {
 
@@ -32,7 +36,8 @@ class UtilityViewModel: ViewModel()  {
     private val _allIncomes = MutableStateFlow<List<IncomeData>>(emptyList())
     val allIncomes: StateFlow<List<IncomeData>> = _allIncomes
 
-
+    private val _last4Expenses = MutableStateFlow<List<Expense>>(emptyList())
+    val last4Expenses: StateFlow<List<Expense>> = _last4Expenses
 
 
     fun addToNetBalance(amount: Double, onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
@@ -77,7 +82,6 @@ class UtilityViewModel: ViewModel()  {
         }
     }
 
-
     fun startListeningToNetBalance() {
         val uid = auth.currentUser?.uid ?: return
 
@@ -100,10 +104,6 @@ class UtilityViewModel: ViewModel()  {
             }
         }
     }
-
-
-    private val _last4Expenses = MutableStateFlow<List<Expense>>(emptyList())
-    val last4Expenses: StateFlow<List<Expense>> = _last4Expenses
 
     fun startListeningToExpenses() {
         val uid = auth.currentUser?.uid ?: return
@@ -147,7 +147,6 @@ class UtilityViewModel: ViewModel()  {
             _last4Expenses.value = latest
         }
     }
-
 
     fun fetchAllRawExpenses() {
         val uid = auth.currentUser?.uid ?: return
@@ -206,6 +205,52 @@ class UtilityViewModel: ViewModel()  {
                 } ?: emptyList()
 
                 _allIncomes.value = incomeList.reversed()
+            }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getCurrentMonthExpenses(expenses: List<Expense>, formatter: DateTimeFormatter): Double {
+        val today = LocalDate.now()
+        val currentMonth = today.monthValue
+        val currentYear = today.year
+
+        return expenses
+            .filter {
+                val expenseDate = LocalDate.parse(it.Date, formatter)
+                expenseDate.monthValue == currentMonth && expenseDate.year == currentYear
+            }
+            .sumOf { it.MyContribution ?: 0.0 }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getCurrentMonthIncomes(income: List<IncomeData>, formatter: DateTimeFormatter): Double {
+        val today = LocalDate.now()
+        val currentMonth = today.monthValue
+        val currentYear = today.year
+
+        return income
+            .filter {
+                val incomeDate = LocalDate.parse(it.Date, formatter)
+                incomeDate.monthValue == currentMonth && incomeDate.year == currentYear
+            }
+            .sumOf { it.Amount ?: 0.0 }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getCurrentMonthExpensesFriends(expenses: List<Expense>, formatter: DateTimeFormatter): Double {
+        val today = LocalDate.now()
+        val currentMonth = today.monthValue
+        val currentYear = today.year
+
+        return expenses
+            .filter {
+                val expenseDate = LocalDate.parse(it.Date, formatter)
+                expenseDate.monthValue == currentMonth && expenseDate.year == currentYear
+            }
+            .sumOf {
+                if (it.Friends.isNotEmpty()){
+                    it.MyContribution ?: 0.0
+                }else{0.0}
             }
     }
 

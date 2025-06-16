@@ -1022,131 +1022,132 @@ fun AddTransactionPage(navController: NavController, transactionViewModel: Trans
                             horizontal = 0.04 * screenWidth
                         )
                 ) {
-                    LazyColumn(
+                    Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .align(Alignment.TopCenter)
-                    ) {
-                        item{
+                    ){
+                        Box(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Box(
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .border(
-                                            width = 1.dp,
-                                            color = Color(0x66ABABAB),
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
-                                ){
-                                    Icon(
-                                        Icons.AutoMirrored.TwoTone.KeyboardArrowLeft,
-                                        contentDescription = "Arrow Icon",
-                                        modifier = Modifier
-                                            .padding(6.dp)
-                                            .size(32.dp)
-                                            .align(Alignment.CenterStart)
-                                            .clickable {
-                                                navController.popBackStack()
-                                            },
-                                        tint = Color.White
+                                modifier = Modifier
+                                    .border(
+                                        width = 1.dp,
+                                        color = Color(0x66ABABAB),
+                                        shape = RoundedCornerShape(12.dp)
                                     )
-                                }
-                                Text(
-                                    text = "Add Transaction",
+                            ){
+                                Icon(
+                                    Icons.AutoMirrored.TwoTone.KeyboardArrowLeft,
+                                    contentDescription = "Arrow Icon",
                                     modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .padding(start = 8.dp),
-                                    color = Color.White,
-                                    fontSize = 24.sp,
-                                    fontFamily = latoFontFamily,
+                                        .padding(6.dp)
+                                        .size(32.dp)
+                                        .align(Alignment.CenterStart)
+                                        .clickable {
+                                            navController.popBackStack()
+                                        },
+                                    tint = Color.White
                                 )
                             }
-                        }
-                        item {
-                            Spacer(modifier = Modifier.height(0.02 * screenHeight))
-                            Row(
+                            Text(
+                                text = "Add Transaction",
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = Color(0xFF19191b)
-                                    ),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ){
-                                Button(
-                                    onClick = {
-                                        transactionViewModel.expense = false
-                                        transactionViewModel.clearTransaction()
-                                              },
-                                    modifier = Modifier
-                                        .padding(
-                                            vertical = 8.dp,
-                                            horizontal = 8.dp
-                                        )
-                                        .weight(1f)
-                                        .height(0.05 * screenHeight),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = if (!transactionViewModel.expense) {
-                                        ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFFDE4251)
-                                        )
-                                    } else {
-                                        ButtonDefaults.buttonColors(
-                                            containerColor = Color.Transparent
-                                        )
-                                    }
-                                ) {
-                                    Text(
-                                        text = "Income",
-                                        color = if (!transactionViewModel.expense) Color.Black else Color.White,
-                                        fontSize = 16.sp,
-                                        fontFamily = latoFontFamily,
-                                    )
-                                }
-                                Button(
-                                    onClick = {
-                                        transactionViewModel.expense = true
-                                        transactionViewModel.clearTransaction()
-                                    },
-                                    modifier = Modifier
-                                        .padding(
-                                            vertical = 8.dp,
-                                            horizontal = 8.dp
-                                        )
-                                        .weight(1f)
-                                        .height(0.05 * screenHeight),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = if (transactionViewModel.expense) {
-                                        ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFFDE4251)
-                                        )
-                                    } else {
-                                        ButtonDefaults.buttonColors(
-                                            containerColor = Color.Transparent
-                                        )
-                                    }
-                                ) {
-                                    Text(
-                                        text = "Expense",
-                                        color = if (transactionViewModel.expense) Color.Black else Color.White,
-                                        fontSize = 16.sp,
-                                        fontFamily = latoFontFamily,
-                                    )
-                                }
-                            }
+                                    .align(Alignment.Center)
+                                    .padding(start = 8.dp),
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontFamily = latoFontFamily,
+                            )
                         }
-                        item{
-                            Spacer(modifier = Modifier.height(0.02 * screenHeight))
-                            if (transactionViewModel.expense) {
-                                Expense()
-                            } else {
-                                Income()
+                        LazyColumn{
+                            item {
+                                Spacer(modifier = Modifier.height(0.02 * screenHeight))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            shape = RoundedCornerShape(16.dp),
+                                            color = Color(0xFF19191b)
+                                        ),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ){
+                                    Button(
+                                        onClick = {
+                                            transactionViewModel.expense = false
+                                            transactionViewModel.clearTransaction()
+                                        },
+                                        modifier = Modifier
+                                            .padding(
+                                                vertical = 8.dp,
+                                                horizontal = 8.dp
+                                            )
+                                            .weight(1f)
+                                            .height(0.05 * screenHeight),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = if (!transactionViewModel.expense) {
+                                            ButtonDefaults.buttonColors(
+                                                containerColor = Color(0xFFDE4251)
+                                            )
+                                        } else {
+                                            ButtonDefaults.buttonColors(
+                                                containerColor = Color.Transparent
+                                            )
+                                        }
+                                    ) {
+                                        Text(
+                                            text = "Income",
+                                            color = if (!transactionViewModel.expense) Color.Black else Color.White,
+                                            fontSize = 16.sp,
+                                            fontFamily = latoFontFamily,
+                                        )
+                                    }
+                                    Button(
+                                        onClick = {
+                                            transactionViewModel.expense = true
+                                            transactionViewModel.clearTransaction()
+                                        },
+                                        modifier = Modifier
+                                            .padding(
+                                                vertical = 8.dp,
+                                                horizontal = 8.dp
+                                            )
+                                            .weight(1f)
+                                            .height(0.05 * screenHeight),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = if (transactionViewModel.expense) {
+                                            ButtonDefaults.buttonColors(
+                                                containerColor = Color(0xFFDE4251)
+                                            )
+                                        } else {
+                                            ButtonDefaults.buttonColors(
+                                                containerColor = Color.Transparent
+                                            )
+                                        }
+                                    ) {
+                                        Text(
+                                            text = "Expense",
+                                            color = if (transactionViewModel.expense) Color.Black else Color.White,
+                                            fontSize = 16.sp,
+                                            fontFamily = latoFontFamily,
+                                        )
+                                    }
+                                }
                             }
+                            item{
+                                Spacer(modifier = Modifier.height(0.02 * screenHeight))
+                                if (transactionViewModel.expense) {
+                                    Expense()
+                                } else {
+                                    Income()
+                                }
 
+                            }
                         }
                     }
+
                 }
             }
         }

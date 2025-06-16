@@ -2,6 +2,8 @@ package com.example.trackify.view
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -65,10 +68,13 @@ import com.example.trackify.R
 import com.example.trackify.ui.theme.latoFontFamily
 import com.example.trackify.viewmodel.AuthViewModel
 import com.example.trackify.viewmodel.UtilityViewModel
+import java.time.format.DateTimeFormatter
 import kotlin.math.cos
+import kotlin.math.min
 import kotlin.math.sin
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun HomePage(navController: NavController) {
@@ -79,15 +85,24 @@ fun HomePage(navController: NavController) {
 
     val authViewModel: AuthViewModel = viewModel()
     val utilityViewModel: UtilityViewModel = viewModel()
+    val allExpensesRaw by utilityViewModel.allExpensesRaw.collectAsState()
+    val allIncome by utilityViewModel.allIncomes.collectAsState()
     val netBalance by utilityViewModel.netBalanceText.collectAsState()
     val recentExpenses by utilityViewModel.last4Expenses.collectAsState()
     val userName by authViewModel.userName
-
     authViewModel.fetchUserName()
 
     val view = LocalView.current
     val window = (view.context as? Activity)?.window
     val windowInsetsController = window?.let { WindowCompat.getInsetsController(it, view) }
+
+    utilityViewModel.fetchAllRawExpenses()
+    utilityViewModel.fetchAllIncomes()
+
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    val totalThisMonth = utilityViewModel.getCurrentMonthExpenses(allExpensesRaw, formatter)
+    val totalThisMonthIncome = utilityViewModel.getCurrentMonthIncomes(allIncome, formatter)
+    val totalWithFriends = utilityViewModel.getCurrentMonthExpensesFriends(allExpensesRaw, formatter)
 
     if (windowInsetsController != null) {
         windowInsetsController.isAppearanceLightStatusBars = false
@@ -285,16 +300,24 @@ fun HomePage(navController: NavController) {
                                         color = Color(0x66ABABAB),
                                         shape = RoundedCornerShape(16.dp)
                                     )
+                                    .heightIn(
+                                        min = 0.25 * screenHeight,
+                                    )
                             ) {
                                 if (recentExpenses.isEmpty()) {
-                                    CircularProgressIndicator(
+                                    Box(
                                         modifier = Modifier
-                                            .size(48.dp)
-                                            .align(Alignment.CenterHorizontally)
+                                            .fillMaxSize()
                                             .padding(16.dp),
-                                        color = Color.White,
-                                        strokeWidth = 5.dp
-                                    )
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "Loading recent expenses...",
+                                            color = Color.Gray,
+                                            fontFamily = latoFontFamily,
+                                            fontSize = 16.sp
+                                        )
+                                    }
                                 } else {
                                     recentExpenses.forEachIndexed { index, expense ->
                                         Row(
@@ -408,14 +431,14 @@ fun HomePage(navController: NavController) {
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = "Monthly Income",
+                                        text = "Income this Month",
                                         color = Color.Gray,
                                         fontSize = 14.sp,
                                         fontFamily = latoFontFamily,
                                     )
                                     Spacer(modifier = Modifier.height(5.dp))
                                     Text(
-                                        text = "₹20,000",
+                                        text = if (totalThisMonthIncome == null || totalThisMonthIncome == 0.0) "Loading..." else "₹${String.format("%.2f", totalThisMonthIncome)}",
                                         color = Color(0xFFDADADA),
                                         fontSize = 26.sp,
                                         fontFamily = latoFontFamily,
@@ -449,16 +472,16 @@ fun HomePage(navController: NavController) {
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = "Monthly Expenses",
+                                        text = "Expenses this Month",
                                         color = Color.Gray,
                                         fontSize = 14.sp,
                                         fontFamily = latoFontFamily,
                                     )
                                     Spacer(modifier = Modifier.height(5.dp))
                                     Text(
-                                        text = "₹18,000",
+                                        text = if (totalThisMonth == null || totalThisMonth == 0.0) "Loading..." else "₹${String.format("%.2f", totalThisMonth)}",
                                         color = Color(0xFFDADADA),
-                                        fontSize = 26.sp,
+                                        fontSize = 24.sp,
                                         fontFamily = latoFontFamily,
                                         fontWeight = FontWeight.Bold,
                                     )
@@ -499,16 +522,16 @@ fun HomePage(navController: NavController) {
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = "With Friends",
+                                        text = "Spent with Friends",
                                         color = Color.Gray,
                                         fontSize = 14.sp,
                                         fontFamily = latoFontFamily,
                                     )
                                     Spacer(modifier = Modifier.height(5.dp))
                                     Text(
-                                        text = "₹5,600",
+                                        text = if (totalWithFriends == null || totalWithFriends == 0.0) "Loading..." else "₹${String.format("%.2f", totalWithFriends)}",
                                         color = Color(0xFFDADADA),
-                                        fontSize = 26.sp,
+                                        fontSize = 24.sp,
                                         fontFamily = latoFontFamily,
                                         fontWeight = FontWeight.Bold,
                                     )
@@ -540,7 +563,7 @@ fun HomePage(navController: NavController) {
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = "Expenses Summary",
+                                        text = "Expenses Analysis",
                                         color = Color.Gray,
                                         fontSize = 14.sp,
                                         fontFamily = latoFontFamily,
@@ -621,7 +644,10 @@ fun HomePage(navController: NavController) {
                             }
                             Spacer(modifier = Modifier.size(12.dp))
                             IconButton(
-                                onClick = {},
+                                onClick = {
+                                    navController.navigate("reports"){
+                                    }
+                                },
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(50))
                                     .size(55.dp)
@@ -680,6 +706,7 @@ fun HomePage(navController: NavController) {
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true)
 @Composable
 fun HomePagePreview() {

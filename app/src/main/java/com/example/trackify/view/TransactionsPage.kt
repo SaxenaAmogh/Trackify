@@ -98,8 +98,8 @@ fun TransactionsPage(navController: NavController) {
     val focusManager = LocalFocusManager.current
 
     val utilityViewModel: UtilityViewModel = viewModel()
-    val allIncomes by utilityViewModel.allIncomes.collectAsState()
     val allExpensesRaw by utilityViewModel.allExpensesRaw.collectAsState()
+    val allIncomes by utilityViewModel.allIncomes.collectAsState()
     var selectedExpense by remember { mutableStateOf<Expense?>(null) }
     var selectedIncome by remember { mutableStateOf<IncomeData?>(null) }
 
@@ -757,10 +757,10 @@ fun TransactionsPage(navController: NavController) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            Color(0xFF525252).copy(alpha = 0.09f),
+                            Color(0xFF676767).copy(alpha = 0.09f),
                             shape = RoundedCornerShape(24.dp)
                         )
-                        .height(0.33 * screenHeight),
+                        .height(0.3 * screenHeight),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
@@ -1990,6 +1990,9 @@ fun TransactionsPage(navController: NavController) {
                                                             Text(
                                                                 item,
                                                                 fontFamily = latoFontFamily,
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth(),
+                                                                textAlign = TextAlign.Center
                                                             )
                                                         },
                                                         onClick = {
@@ -2133,7 +2136,9 @@ fun TransactionsPage(navController: NavController) {
                                 }
                                 Spacer(modifier = Modifier.size(12.dp))
                                 IconButton(
-                                    onClick = {},
+                                    onClick = {
+                                        navController.navigate("reports")
+                                    },
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(50))
                                         .size(55.dp)
