@@ -115,7 +115,7 @@ class ReportsViewModel: ViewModel() {
                 val date = LocalDate.parse(it.Date ?: "", formatter)
                 if (date.monthValue == currentMonth && date.year == currentYear) {
                     val week = getWeekOfMonth(date)
-                    expensePerWeek[week] += it.Amount.toFloat()
+                    expensePerWeek[week] += it.MyContribution.toFloat()
                 }
             } catch (_: Exception) { }
         }

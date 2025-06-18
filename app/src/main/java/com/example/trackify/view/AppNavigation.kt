@@ -20,26 +20,17 @@ fun AppNavigation(navController: NavHostController) {
 
     LaunchedEffect(Unit) {
         if (isUserLoggedIn) {
-            navController.navigate("home") {
+            navController.navigate("friendDetails") {
                 popUpTo(0) { inclusive = true }
             }
         }
     }
     NavHost(
         navController = navController,
-        startDestination = if (isUserLoggedIn) "home" else "start" // Start with the TransactionPage,
+        startDestination = if (isUserLoggedIn) "friendDetails" else "start" // Start with the TransactionPage,
     ) {
-        composable("home") {
-            HomePage(navController)
-        }
         composable("start") {
-            StartPage(navController)
-        }
-        composable("transaction") {
-            AddTransactionPage(navController, transactionViewModel)
-        }
-        composable("friends") {
-            AddFriendsPage(navController, transactionViewModel)
+             StartPage(navController)
         }
         composable("login") {
             LoginPage(navController)
@@ -47,11 +38,26 @@ fun AppNavigation(navController: NavHostController) {
         composable("signup") {
             CreatePage(navController)
         }
+        composable("home") {
+            HomePage(navController)
+        }
+        composable("transaction") {
+            AddTransactionPage(navController, transactionViewModel)
+        }
+        composable("friends") {
+            AddFriendsPage(navController, transactionViewModel)
+        }
         composable("viewTransactions") {
             TransactionsPage(navController)
         }
         composable("reports") {
             ReportsPage(navController)
+        }
+        composable("profile") {
+            ProfilePage(navController)
+        }
+        composable("friendDetails") {
+            FriendDetailsPage(navController)
         }
     }
 }

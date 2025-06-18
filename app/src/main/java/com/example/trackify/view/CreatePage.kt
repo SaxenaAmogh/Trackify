@@ -36,6 +36,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,7 +82,15 @@ fun CreatePage(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
+    val signupStatus by authViewModel.signupStatus
 
+    LaunchedEffect(signupStatus) {
+        if (signupStatus != null && signupStatus != "success") {
+            Toast.makeText(context, signupStatus, Toast.LENGTH_SHORT).show()
+            // Reset status if needed
+            authViewModel.clearStatus()
+        }
+    }
     if (windowInsetsController != null) {
         windowInsetsController.isAppearanceLightStatusBars = false
     }

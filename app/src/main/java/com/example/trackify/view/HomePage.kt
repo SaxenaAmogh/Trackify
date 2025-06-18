@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.twotone.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.sharp.Add
 import androidx.compose.material.icons.twotone.Add
 import androidx.compose.material3.CircularProgressIndicator
@@ -181,16 +182,13 @@ fun HomePage(navController: NavController) {
                                     )
                                 }
                                 Icon(
-                                    painter = painterResource(R.drawable.notification),
+                                    Icons.Rounded.Settings,
                                     contentDescription = "Menu Icon",
                                     modifier = Modifier
                                         .size(38.dp)
                                         .align(Alignment.CenterVertically)
                                         .clickable {
-                                            authViewModel.logout()
-                                            navController.navigate("start") {
-                                                popUpTo("home") { inclusive = true }
-                                            }
+                                            navController.navigate("profile")
                                         },
                                     tint = Color(0xFFDE4251)
                                 )
@@ -553,13 +551,20 @@ fun HomePage(navController: NavController) {
                                             top = 0.05 * screenWidth
                                         )
                                         .size(0.38 * screenWidth)
+                                        .clickable {
+                                            navController.navigate("reports"){
+                                            }
+                                        }
                                 ){
                                     Image(
                                         painter = painterResource(R.drawable.graph),
                                         contentDescription = "Transaction Icon",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
-                                            .size(48.dp),
+                                            .size(48.dp)
+                                            .clickable {
+                                                navController.navigate("reports")
+                                            }
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
@@ -575,6 +580,10 @@ fun HomePage(navController: NavController) {
                                         fontSize = 24.sp,
                                         fontFamily = latoFontFamily,
                                         fontWeight = FontWeight.Bold,
+                                        modifier = Modifier
+                                            .clickable {
+                                                navController.navigate("reports")
+                                            }
                                     )
                                 }
                             }
@@ -618,6 +627,7 @@ fun HomePage(navController: NavController) {
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(50))
                                     .size(55.dp)
+                                    .padding(start = 8.dp)
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.home),
@@ -662,15 +672,16 @@ fun HomePage(navController: NavController) {
                             Spacer(modifier = Modifier.size(12.dp))
                             IconButton(
                                 onClick = {
+                                    navController.navigate("friendDetails")
                                 },
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(50))
                                     .size(55.dp)
                             ) {
                                 Icon(
-                                    painter = painterResource(R.drawable.user),
+                                    painter = painterResource(R.drawable.friends_nn),
                                     contentDescription = "user",
-                                    Modifier.size(32.dp),
+                                    Modifier.size(30.dp),
                                     tint = Color(0xFFFFFFFF)
                                 )
                             }

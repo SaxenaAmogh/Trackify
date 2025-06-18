@@ -636,6 +636,10 @@ fun AddTransactionPage(navController: NavController, transactionViewModel: Trans
                         friends = transactionViewModel.selectedFriends,
                         note = transactionViewModel.note,
                     )
+                    transactionViewModel.updateFriendContributions(
+                        transactionViewModel.category,
+                        transactionViewModel.MyContribution
+                    )
                     navController.navigate("home")
                 }
             },

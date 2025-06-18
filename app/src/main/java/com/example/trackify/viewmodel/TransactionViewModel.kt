@@ -1,5 +1,6 @@
 package com.example.trackify.viewmodel
 
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -17,7 +18,7 @@ class TransactionViewModel: ViewModel() {
     data class FriendContribution(
         val name: String,
         val contribution: Float,
-        val paid: Boolean // Example field, you can change to anything
+        val paid: Boolean
     )
 
     var expense by mutableStateOf(true)
@@ -28,6 +29,7 @@ class TransactionViewModel: ViewModel() {
     var date by mutableStateOf("")
     var category by mutableStateOf("Category")
     var note by mutableStateOf("")
+    var MyContribution by mutableFloatStateOf(0f)
 
     fun addFriendContribution(name: String, contribution: Float, paid: Boolean) {
         selectedFriends.add(FriendContribution(name, contribution, paid))
@@ -57,6 +59,7 @@ class TransactionViewModel: ViewModel() {
                     total += selectedFriends[i].contribution
                 }
             }
+            MyContribution = amount.toFloat() - total
             return (amount.toFloat() - total)
         }
     }
@@ -169,5 +172,79 @@ class TransactionViewModel: ViewModel() {
             _incomeStatus.value = "Failed to fetch expense doc: ${e.message}"
         }
     }
+
+    fun updateFriendContributions(expCategory: String, myContri: Float) {
+        val uid = auth.currentUser?.uid ?: return
+        val firestore = FirebaseFirestore.getInstance()
+        val friendDetailsRef = firestore.collection(uid).document("FriendDetails")
+
+        val allCategories = listOf("Food", "Shopping", "Subscription", "Entertainment", "Travel", "Other")
+
+        friendDetailsRef.get()
+            .addOnSuccessListener { document ->
+                val existingData = document.data ?: emptyMap<String, Any>()
+                val updatedData = existingData.toMutableMap()
+
+                for (friend in selectedFriends) {
+                    val friendName = friend.name
+                    val existingFriendMap = updatedData[friendName] as? Map<*, *>
+                    var num = 0f
+
+                    val updatedFriendData = if (existingFriendMap != null) {
+                        val oldPending = (existingFriendMap["Pending"] as? Number)?.toFloat() ?: 0f
+                        val oldMySpending = (existingFriendMap["MySpending"] as? Number)?.toFloat() ?: 0f
+                        val oldCategoryMap = (existingFriendMap["Category"] as? Map<*, *>) ?: emptyMap<String, Any>()
+
+                        val newCategoryMap = oldCategoryMap.toMutableMap().mapValues { (_, v) ->
+                            (v as? Number)?.toFloat() ?: 0f
+                        }.toMutableMap()
+
+                        newCategoryMap[expCategory] = (newCategoryMap[expCategory] ?: 0f) + 1
+
+                        num = if (!friend.paid){
+                            oldPending + friend.contribution
+                        }else{
+                            oldPending
+                        }
+
+                        mapOf(
+                            "Pending" to num,
+                            "MySpending" to oldMySpending + myContri,
+                            "Category" to newCategoryMap
+                        )
+                    } else {
+                        val initialCategoryMap = allCategories.associateWith { 0f }.toMutableMap()
+                        initialCategoryMap[expCategory] = 1f
+
+                        num = if (!friend.paid){
+                            friend.contribution
+                        }else{
+                            0f
+                        }
+                        mapOf(
+                            "Pending" to num,
+                            "MySpending" to myContri,
+                            "Category" to initialCategoryMap
+                        )
+                    }
+
+                    updatedData[friendName] = updatedFriendData
+                }
+
+                friendDetailsRef.set(updatedData)
+                    .addOnSuccessListener {
+                        Log.d("Firestore", "FriendDetails updated successfully")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("Firestore", "Error updating FriendDetails: ${e.message}")
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error fetching FriendDetails: ${e.message}")
+            }
+    }
+
+
+
 
 }

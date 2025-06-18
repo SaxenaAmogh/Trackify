@@ -2136,6 +2136,7 @@ fun TransactionsPage(navController: NavController) {
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(50))
                                         .size(55.dp)
+                                        .padding(bottom = 8.dp)
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.transaction),
@@ -2165,13 +2166,16 @@ fun TransactionsPage(navController: NavController) {
                                 Spacer(modifier = Modifier.size(12.dp))
                                 IconButton(
                                     onClick = {
+                                        navController.navigate("friendDetails") {
+                                            popUpTo("viewTransactions") { inclusive = true }
+                                        }
                                     },
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(50))
                                         .size(55.dp)
                                 ) {
                                     Icon(
-                                        painter = painterResource(R.drawable.user),
+                                        painter = painterResource(R.drawable.friends_nn),
                                         contentDescription = "user",
                                         Modifier.size(32.dp),
                                         tint = Color(0xFFFFFFFF)
