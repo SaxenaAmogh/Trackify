@@ -664,7 +664,7 @@ fun AddTransactionPage(navController: NavController, transactionViewModel: Trans
         LaunchedEffect(expenseStatus) {
             expenseStatus?.let {
                 if (it == "success") {
-                    utilityViewModel.subtractFromNetBalance(transactionViewModel.amount.toDouble())
+                    utilityViewModel.subtractFromNetBalance(transactionViewModel.MyContribution.toDouble())
                     transactionViewModel.clearTransaction()
                     Toast.makeText(context, "Expense added", Toast.LENGTH_SHORT).show()
                 } else {
