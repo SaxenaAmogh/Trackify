@@ -51,6 +51,7 @@ class TransactionViewModel: ViewModel() {
 
     private fun calcMyContribution(): Float {
         if (selectedFriends.size == 0){
+            MyContribution = amount.toFloat()
             return amount.toFloat()
         }else{
             var total = 0f

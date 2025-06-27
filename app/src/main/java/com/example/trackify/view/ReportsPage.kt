@@ -266,7 +266,7 @@ fun ReportsPage(navController: NavController) {
             "Food" to Color(0xFFDE4251),
             "Shopping" to Color(0xFFFF9800),
             "Entertainment" to Color(0xFF3F51B5),
-            "Subscriptions" to Color(0xFF009688),
+            "Subscription" to Color(0xFF009688),
             "Travel" to Color(0xFF9C27B0),
             "Other" to Color(0xFF607D8B)
         )
@@ -488,7 +488,7 @@ fun ReportsPage(navController: NavController) {
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
                                             Text(
-                                                text = "This Week's Analytics",
+                                                text = "This Month's Analytics",
                                                 color = Color.White,
                                                 fontSize = 22.sp,
                                                 fontFamily = latoFontFamily,
@@ -666,7 +666,7 @@ fun ReportsPage(navController: NavController) {
                                                 "Food" to Color(0xFFDE4251),
                                                 "Shopping" to Color(0xFFFF9800),
                                                 "Entertainment" to Color(0xFF3F51B5),
-                                                "Subscriptions" to Color(0xFF009688),
+                                                "Subscription" to Color(0xFF009688),
                                                 "Travel" to Color(0xFF9C27B0),
                                                 "Other" to Color(0xFF607D8B)
                                             )

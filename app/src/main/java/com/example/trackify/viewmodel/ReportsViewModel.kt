@@ -175,7 +175,7 @@ class ReportsViewModel: ViewModel() {
 
         val grouped = filtered.groupingBy { it.ExpenseType.trim() }.eachCount()
 
-        val categoryLabels = listOf("Food", "Shopping", "Entertainment", "Subscriptions", "Travel", "Other")
+        val categoryLabels = listOf("Food", "Shopping", "Entertainment", "Subscription", "Travel", "Other")
 
         val categoryAmountMap = mutableMapOf<String, Double>()
         for (category in categoryLabels) {
